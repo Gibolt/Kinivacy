@@ -1,0 +1,12 @@
+C:\Git\Kinivacy\DepthBasics-WPF\bin\Debug\DepthBasics-WPF.exe
+C:\Git\Kinivacy\DepthBasics-WPF\bin\Debug\DepthBasics-WPF.pdb
+C:\Git\Kinivacy\DepthBasics-WPF\obj\Debug\DepthBasics-WPF.csprojResolveAssemblyReference.cache
+C:\Git\Kinivacy\DepthBasics-WPF\obj\Debug\MainWindow.baml
+C:\Git\Kinivacy\DepthBasics-WPF\obj\Debug\MainWindow.g.cs
+C:\Git\Kinivacy\DepthBasics-WPF\obj\Debug\App.g.cs
+C:\Git\Kinivacy\DepthBasics-WPF\obj\Debug\DepthBasics-WPF_MarkupCompile.cache
+C:\Git\Kinivacy\DepthBasics-WPF\obj\Debug\DepthBasics-WPF.g.resources
+C:\Git\Kinivacy\DepthBasics-WPF\obj\Debug\Microsoft.Samples.Kinect.DepthBasics.Properties.Resources.resources
+C:\Git\Kinivacy\DepthBasics-WPF\obj\Debug\DepthBasics-WPF.csproj.GenerateResource.Cache
+C:\Git\Kinivacy\DepthBasics-WPF\obj\Debug\DepthBasics-WPF.exe
+C:\Git\Kinivacy\DepthBasics-WPF\obj\Debug\DepthBasics-WPF.pdb
