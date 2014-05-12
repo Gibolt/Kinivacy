@@ -15,6 +15,7 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
     using Microsoft.Kinect;
     using Microsoft.Kinect.Toolkit;
     using Microsoft.Kinect.Toolkit.BackgroundRemoval;
+  //  using System.Drawing.Image;
 
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -40,6 +41,8 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
         /// Active Kinect sensor
         /// </summary>
         private KinectSensorChooser sensorChooser;
+
+        private KinectSensor ks;
 
         /// <summary>
         /// Our core library which does background 
@@ -178,6 +181,8 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
         /// </summary>
         /// <param name="sender">object that sends the event</param>
         /// <param name="e">argument of the event</param>
+        private int sizeIm = 400;
+        private double original = 0;
         private void BackgroundRemovedFrameReadyHandler(object sender, BackgroundRemovedColorFrameReadyEventArgs e)
         {
             using (var backgroundRemovedFrame = e.OpenBackgroundRemovedColorFrame())
@@ -187,11 +192,59 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                     if (null == this.foregroundBitmap || this.foregroundBitmap.PixelWidth != backgroundRemovedFrame.Width 
                         || this.foregroundBitmap.PixelHeight != backgroundRemovedFrame.Height)
                     {
+                        
+                    //    WriteableBitmap bit = WriteableBitmap(Happy.Source);
                         this.foregroundBitmap = new WriteableBitmap(backgroundRemovedFrame.Width, backgroundRemovedFrame.Height, 96.0, 96.0, PixelFormats.Bgra32, null);
 
                         // Set the image we display to point to the bitmap where we'll put the image data
                         this.MaskedColor.Source = this.foregroundBitmap;
+                        
                     }
+
+                    if (original == 0)
+                    {
+                        original = Happy.Width;
+                    }
+                    if (sizeIm > 1)
+                    {
+                        Happy.Width = sizeIm;
+                        sizeIm += (sizeIm < foregroundBitmap.PixelWidth + 100) ? 1 : 0;
+                    }
+                        //  Bitmap bit = new Bitmap(Happy.Source, true);
+
+                    if (s == null)
+                    {
+            //            Console.WriteLine("Choose skeleton");
+                 //       this.ChooseSkeleton();
+                    }
+                    if (s != null && currentlyTrackedSkeletonId >= 0 && skeletons.Length > currentlyTrackedSkeletonId)
+                    {
+         //               Console.WriteLine(currentlyTrackedSkeletonId);
+                        //       Skeleton s = skeletons[currentlyTrackedSkeletonId];
+                        //    if (s.TrackingState == SkeletonTrackingState.Tracked)
+                        var total = 0;
+                        foreach (Joint joint in s.Joints)
+                        {
+                            ColorImagePoint point = ks.CoordinateMapper.MapSkeletonPointToColorPoint(joint.Position, ColorImageFormat.RgbResolution640x480Fps30);
+                            //     int index = (int)yPos * stride + 4 * (int)xPos;
+                         
+                            if (point.X > -1000000 && point.X < 1000000 && point.Y > -1000000 && point.Y < 1000000)
+                            {
+                                Joint j = joint;
+                                int pos = point.Y * stride + 4 * point.X;
+                                if (pos >=0 && pos < sil.Length && sil[pos] == 255 && sil[pos + 1] == 255 && sil[pos + 2] == 255)
+                                {
+                                    total += 1;
+                                }
+                            }
+                        }
+                        Console.WriteLine(total + "_");
+                        if (total > 10)
+                        {
+                            sizeIm -= 3;
+                        }
+                    }
+
 
                     // Write the pixel data into our bitmap
                     this.foregroundBitmap.WritePixels(
@@ -203,14 +256,48 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
             }
         }
 
+        private byte[] sil;
+        int stride;
+        private void LoadImage()
+        {
+            BitmapImage img = new BitmapImage(new Uri("..//..//Images//Happy.bmp", UriKind.Relative));
+          //  BitmapImage img = new BitmapImage(new Uri("..//..//Images//Mad.png", UriKind.Relative));
+            img.CreateOptions = BitmapCreateOptions.None;
+            stride = img.PixelWidth * 4;
+            int size = img.PixelHeight * stride;
+            byte[] pixels = new byte[size];
+            img.CopyPixels(pixels, stride, 0);
+            sil = pixels;
+
+            /*
+            BitmapSource bms = Happy.Source as BitmapSource;
+            WriteableBitmap wb = new WriteableBitmap(bms);
+            for (int i = 300; i < 400; ++i)
+            {
+                for (int j = 200; j < 300; ++j)
+                {
+                    //Console.WriteLine(i + "\t" + j);
+                    Color color = getPixelColor(wb, i, j);
+                    //Console.WriteLine(color);
+                    if (color == Colors.White)
+                    {
+                        Console.WriteLine(i + "\t" + j);
+                        Console.WriteLine("Found white!");
+                    }
+                }
+            }
+             * */
+        }
+
         /// <summary>
         /// Use the sticky skeleton logic to choose a player that we want to set as foreground. This means if the app
         /// is tracking a player already, we keep tracking the player until it leaves the sight of the camera, 
         /// and then pick the closest player to be tracked as foreground.
         /// </summary>
+        private Skeleton s;
         private void ChooseSkeleton()
         {
-            var isTrackedSkeltonVisible = false;
+            var isTrackedSkeletonVisible = false;
             var nearestDistance = float.MaxValue;
             var nearestSkeleton = 0;
 
@@ -220,7 +307,7 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                 {
                     continue;
                 }
-
+          //      Console.WriteLine(skel);
                 if (skel.TrackingState != SkeletonTrackingState.Tracked)
                 {
                     continue;
@@ -228,7 +315,7 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
 
                 if (skel.TrackingId == this.currentlyTrackedSkeletonId)
                 {
-                    isTrackedSkeltonVisible = true;
+                    isTrackedSkeletonVisible = true;
                     break;
                 }
 
@@ -236,14 +323,20 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                 {
                     nearestDistance = skel.Position.Z;
                     nearestSkeleton = skel.TrackingId;
+                    s = skel;
                 }
             }
 
-            if (!isTrackedSkeltonVisible && nearestSkeleton != 0)
+            if (!isTrackedSkeletonVisible || nearestSkeleton != 0)
             {
                 this.backgroundRemovedColorStream.SetTrackedPlayer(nearestSkeleton);
                 this.currentlyTrackedSkeletonId = nearestSkeleton;
             }
+            else
+            {
+             //   s = null;
+            }
+
         }
 
         /// <summary>
@@ -281,6 +374,8 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
             {
                 try
                 {
+                    LoadImage();
+                    ks = args.NewSensor;
                     args.NewSensor.DepthStream.Enable(DepthFormat);
                     args.NewSensor.ColorStream.Enable(ColorFormat);
                     args.NewSensor.SkeletonStream.Enable();
@@ -333,6 +428,9 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
         /// <param name="e">event arguments</param>
         private void ButtonScreenshotClick(object sender, RoutedEventArgs e)
         {
+ //           Happy.Width = sizeIm;
+            sizeIm -= 100;
+            /*
             if (null == this.sensorChooser || null == this.sensorChooser.Kinect)
             {
                 this.statusBarText.Text = Properties.Resources.ConnectDeviceFirst;
@@ -351,11 +449,25 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                 // render the backdrop
                 var backdropBrush = new VisualBrush(Backdrop);
                 dc.DrawRectangle(backdropBrush, null, new Rect(new Point(), new Size(colorWidth, colorHeight)));
+                
+                // render Smaller Box
+                Happy.Height = 300;
+                Happy.Width = 100;
+                Happy.RenderSize = new Size(300,100);
+                var backdropBrush2 = new VisualBrush(Happy);
+                dc.DrawRectangle(backdropBrush2, null, new Rect(new Point(), new Size(colorWidth/4, colorHeight/16)));
 
                 // render the color image masked out by players
                 var colorBrush = new VisualBrush(MaskedColor);
                 dc.DrawRectangle(colorBrush, null, new Rect(new Point(), new Size(colorWidth, colorHeight)));
-            }
+
+                dc.DrawText(new FormattedText("Drawing Text",
+                      CultureInfo.GetCultureInfo("en-us"),
+                      FlowDirection.LeftToRight,
+                      new Typeface("Verdana"),
+                      36, Brushes.Red),
+                      new Point(0, 0));
+             }
 
             renderBitmap.Render(dv);
     
@@ -385,6 +497,7 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
             {
                 this.statusBarText.Text = string.Format(CultureInfo.InvariantCulture, Properties.Resources.ScreenshotWriteFailed, path);
             }
+             * */
         }
         
         /// <summary>
@@ -394,6 +507,7 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
         /// <param name="e">event arguments</param>
         private void CheckBoxNearModeChanged(object sender, RoutedEventArgs e)
         {
+            /*
             if (null == this.sensorChooser || null == this.sensorChooser.Kinect)
             {
                 return;
@@ -409,6 +523,7 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
             catch (InvalidOperationException)
             {
             }
+             */
         }
     }
 }

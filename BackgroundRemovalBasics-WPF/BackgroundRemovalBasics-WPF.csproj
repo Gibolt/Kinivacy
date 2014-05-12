@@ -111,7 +111,6 @@
     <Resource Include="Images\Kinect.ico" />
     <Resource Include="Images\Logo.png" />
     <Resource Include="Images\Status.png" />
-    <Resource Include="Images\Background.jpg" />
     <Resource Include="Images\CheckedHover.png" />
     <Resource Include="Images\CheckedNormal.png" />
     <Resource Include="Images\SnapHover.png" />
@@ -128,6 +127,10 @@
       <Link>KinectBackgroundRemoval180_64.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Resource Include="Images\Mad.png" />
+    <Resource Include="Images\Happy.bmp" />
+    <Resource Include="Images\Background.png" />
+    <Resource Include="Images\Happy.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
