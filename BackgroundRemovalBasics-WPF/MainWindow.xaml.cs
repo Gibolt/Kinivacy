@@ -181,8 +181,14 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
         /// </summary>
         /// <param name="sender">object that sends the event</param>
         /// <param name="e">argument of the event</param>
-        private int sizeIm = 400;
+        private int sizeIm = 500;
         private double original = 0;
+        private Boolean flipped = false;
+        private int stage = 1;
+        private int counter = 0;
+        private JointCollection jc;
+        private WriteableBitmap wb;
+        private BackgroundRemovedColorFrame br;
         private void BackgroundRemovedFrameReadyHandler(object sender, BackgroundRemovedColorFrameReadyEventArgs e)
         {
             using (var backgroundRemovedFrame = e.OpenBackgroundRemovedColorFrame())
@@ -199,61 +205,141 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                         // Set the image we display to point to the bitmap where we'll put the image data
                         this.MaskedColor.Source = this.foregroundBitmap;
                         
+                        
                     }
 
                     if (original == 0)
                     {
                         original = Happy.Width;
                     }
-                    if (sizeIm > 1)
+                    
+                    if (stage == 0)
                     {
-                        Happy.Width = sizeIm;
-                        sizeIm += (sizeIm < foregroundBitmap.PixelWidth + 100) ? 1 : 0;
+                        if (s != null && currentlyTrackedSkeletonId >= 0)
+                        {
+                            stage = 1;
+                        }
                     }
-                        //  Bitmap bit = new Bitmap(Happy.Source, true);
+                    else if (stage == 1) {
+                        counter++;
+                        Matching.FontSize = 30;
+                        Matching.Text = "Initializing";
+                        if (counter == 20) { stage = 2; counter = 0; }
+                    }
+                    else if (stage == 2)
+                    {
+                        counter++;
+                        Matching.FontSize = 60;
+                        Matching.Text = ((105 - counter) / 35 + 1).ToString();
+                        if (counter == 105) { stage = 3; counter = 0; }
+                    }
+                    else if (stage == 3 || stage == 4)
+                    {
+                        if (stage == 3 && counter < 40)
+                        {
+                            counter++;
+                            Matching.FontSize = 60 - counter;
+                            Matching.Text = "Go";
+                            if (counter == 40) { stage = 4; counter = 0; }
+                        }
+                        if (stage == 4)
+                        {
+                            Happy.Width = sizeIm;
+                            if (sizeIm < foregroundBitmap.PixelWidth + 100)
+                            {
+                                sizeIm += 1;
 
-                    if (s == null)
-                    {
-            //            Console.WriteLine("Choose skeleton");
-                 //       this.ChooseSkeleton();
+                                var total = 0;
+                                if (s != null)
+                                {
+                                    //  jc = s.Joints;
+                                    foreach (Joint joint in s.Joints)
+                                    {
+                                        ColorImagePoint point = ks.CoordinateMapper.MapSkeletonPointToColorPoint(joint.Position, ColorImageFormat.RgbResolution640x480Fps30);
+                                        if (point.X > -1000000 && point.X < 1000000 && point.Y > -1000000 && point.Y < 1000000)
+                                        {
+                                            Joint j = joint;
+                                            int pos = point.Y * stride + 4 * point.X;
+                                            if (pos >= 0 && pos < sil.Length && sil[pos] == 255 && sil[pos + 1] == 255 && sil[pos + 2] == 255)
+                                            {
+                                                total += 1;
+                                            }
+                                        }
+                                    }
+                                    Matching.Text = "Matching: " + (total * 100 / s.Joints.Count).ToString() + "%";
+                                }
+                                else
+                                {
+                                    Matching.Text = "Matching: 0%";
+                                }
+                                Matching.FontSize = 30;
+                                
+                            }
+                            else
+                            {
+                                stage = 5;
+                             //   wb = this.foregroundBitmap;
+                                br = backgroundRemovedFrame;
+                            //    UpdateImage("Images//Bent.png");
+                            //    Happy.Width = sizeIm;
+                            //    Happy.UpdateLayout();
+                            //    flipped = true;
+                                
+                            }
+                        }
+
                     }
-                    if (s != null && currentlyTrackedSkeletonId >= 0 && skeletons.Length > currentlyTrackedSkeletonId)
+                    else if (stage == 5)
                     {
-         //               Console.WriteLine(currentlyTrackedSkeletonId);
-                        //       Skeleton s = skeletons[currentlyTrackedSkeletonId];
-                        //    if (s.TrackingState == SkeletonTrackingState.Tracked)
-                        var total = 0;
-                        foreach (Joint joint in s.Joints)
+                        Happy.Visibility = System.Windows.Visibility.Hidden;
+                        HappyEnd.Visibility = System.Windows.Visibility.Visible;
+                     //   this.MaskedColor.Source = wb;
+                     //   backgroundRemovedFrame = br;
+                     /*   foreach (Joint joint in jc)
                         {
                             ColorImagePoint point = ks.CoordinateMapper.MapSkeletonPointToColorPoint(joint.Position, ColorImageFormat.RgbResolution640x480Fps30);
-                            //     int index = (int)yPos * stride + 4 * (int)xPos;
-                         
                             if (point.X > -1000000 && point.X < 1000000 && point.Y > -1000000 && point.Y < 1000000)
                             {
                                 Joint j = joint;
                                 int pos = point.Y * stride + 4 * point.X;
-                                if (pos >=0 && pos < sil.Length && sil[pos] == 255 && sil[pos + 1] == 255 && sil[pos + 2] == 255)
+                                if (pos >= 0 && pos < sil.Length && sil[pos] == 255 && sil[pos + 1] == 255 && sil[pos + 2] == 255)
                                 {
-                                    total += 1;
+                                   // MaskedColor.
                                 }
                             }
-                        }
-                        Console.WriteLine(total + "_");
-                        if (total > 10)
-                        {
-                            sizeIm -= 3;
-                        }
+                        }*/
                     }
-
-
-                    // Write the pixel data into our bitmap
-                    this.foregroundBitmap.WritePixels(
-                        new Int32Rect(0, 0, this.foregroundBitmap.PixelWidth, this.foregroundBitmap.PixelHeight),
-                        backgroundRemovedFrame.GetRawPixelData(),
-                        this.foregroundBitmap.PixelWidth * sizeof(int),
-                        0);
+                    if (br == null)
+                    {
+                        // Write the pixel data into our bitmap
+                        this.foregroundBitmap.WritePixels(
+                            new Int32Rect(0, 0, this.foregroundBitmap.PixelWidth, this.foregroundBitmap.PixelHeight),
+                            backgroundRemovedFrame.GetRawPixelData(),
+                            this.foregroundBitmap.PixelWidth * sizeof(int),
+                            0);
+                    }
+                    else
+                    {
+                        // Write the pixel data into our bitmap
+                        this.foregroundBitmap.WritePixels(
+                            new Int32Rect(0, 0, this.foregroundBitmap.PixelWidth, this.foregroundBitmap.PixelHeight),
+                            br.GetRawPixelData(),
+                            this.foregroundBitmap.PixelWidth * sizeof(int),
+                            0);
+                    }
                 }
             }
+        }
+
+        private void UpdateImage(String uri)
+        {
+        //    Image myImage3 = new Image();
+            BitmapImage bi3 = new BitmapImage();
+            bi3.BeginInit();
+            bi3.UriSource = new Uri(uri, UriKind.Relative);
+            bi3.EndInit();
+            Happy.Stretch = Stretch.Fill; 
+            Happy.Source = bi3;
         }
 
         private byte[] sil;
@@ -316,6 +402,7 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                 if (skel.TrackingId == this.currentlyTrackedSkeletonId)
                 {
                     isTrackedSkeletonVisible = true;
+                    s = skel;
                     break;
                 }
 

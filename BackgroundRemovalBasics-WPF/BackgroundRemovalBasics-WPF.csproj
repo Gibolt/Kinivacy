@@ -127,6 +127,8 @@
       <Link>KinectBackgroundRemoval180_64.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Resource Include="Images\Bent.png" />
+    <Resource Include="Images\Shrugitoff.png" />
     <Resource Include="Images\Mad.png" />
     <Resource Include="Images\Happy.bmp" />
     <Resource Include="Images\Background.png" />
