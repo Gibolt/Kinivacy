@@ -22,6 +22,9 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
     /// </summary>
     public partial class MainWindow : Window, IDisposable
     {
+        private String mode = "Wall";
+      //  private String mode = "Privacy";
+
         /// <summary>
         /// Format we will use for the depth stream
         /// </summary>
@@ -64,12 +67,29 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
         /// </summary>
         private bool disposed;
 
+        private System.Windows.Controls.Image[] availImages;
+        private int chosenImageIndex = 0;
+        private System.Windows.Controls.Image image;
+        private static readonly int Bgr32BytesPerPixel = (PixelFormats.Bgr32.BitsPerPixel + 7) / 8;
+        private WriteableBitmap colorImageWritableBitmap;
+        private byte[] colorImageData;
+        private ColorImageFormat currentColorImageFormat = ColorImageFormat.Undefined;
+        private double currentDepth = 0;
+        private int depthRange = 400;
+        private int sizeIm = 500;
+
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
         /// </summary>
         public MainWindow()
         {
             this.InitializeComponent();
+            availImages = new System.Windows.Controls.Image[] { Happy, Mad, Football, Karate, Bent};
+            Random r = new Random();
+            chosenImageIndex = r.Next(0, availImages.Length);
+            image = availImages[chosenImageIndex];
+            image.Width = sizeIm;
+            image.Visibility = System.Windows.Visibility.Visible;
 
             // initialize the sensor chooser and UI
             this.sensorChooser = new KinectSensorChooser();
@@ -181,14 +201,14 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
         /// </summary>
         /// <param name="sender">object that sends the event</param>
         /// <param name="e">argument of the event</param>
-        private int sizeIm = 500;
+        
         private double original = 0;
-        private Boolean flipped = false;
         private int stage = 1;
         private int counter = 0;
         private JointCollection jc;
         private WriteableBitmap wb;
-        private BackgroundRemovedColorFrame br;
+        private WriteableBitmap savedForeground;
+        private BackgroundRemovedColorFrame savedBackground;
         private void BackgroundRemovedFrameReadyHandler(object sender, BackgroundRemovedColorFrameReadyEventArgs e)
         {
             using (var backgroundRemovedFrame = e.OpenBackgroundRemovedColorFrame())
@@ -279,7 +299,8 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                             {
                                 stage = 5;
                              //   wb = this.foregroundBitmap;
-                                br = backgroundRemovedFrame;
+                                savedBackground = backgroundRemovedFrame;
+                                savedForeground = foregroundBitmap;
                             //    UpdateImage("Images//Bent.png");
                             //    Happy.Width = sizeIm;
                             //    Happy.UpdateLayout();
@@ -293,6 +314,7 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                     {
                         Happy.Visibility = System.Windows.Visibility.Hidden;
                         HappyEnd.Visibility = System.Windows.Visibility.Visible;
+                        HappyEnd.Width = Happy.Width;
                      //   this.MaskedColor.Source = wb;
                      //   backgroundRemovedFrame = br;
                      /*   foreach (Joint joint in jc)
@@ -309,7 +331,7 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                             }
                         }*/
                     }
-                    if (br == null)
+                    if (savedBackground == null)
                     {
                         // Write the pixel data into our bitmap
                         this.foregroundBitmap.WritePixels(
@@ -321,11 +343,11 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                     else
                     {
                         // Write the pixel data into our bitmap
-                        this.foregroundBitmap.WritePixels(
-                            new Int32Rect(0, 0, this.foregroundBitmap.PixelWidth, this.foregroundBitmap.PixelHeight),
-                            br.GetRawPixelData(),
-                            this.foregroundBitmap.PixelWidth * sizeof(int),
-                            0);
+                      /*  this.foregroundBitmap.WritePixels(
+                            new Int32Rect(0, 0, this.savedForeground.PixelWidth, this.savedForeground.PixelHeight),
+                            savedBackground.GetRawPixelData(),
+                            this.savedForeground.PixelWidth * sizeof(int),
+                            0);*/
                     }
                 }
             }
@@ -437,7 +459,12 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
             {
                 try
                 {
-                    args.OldSensor.AllFramesReady -= this.SensorAllFramesReady;
+                    if (mode == "Wall") {
+                        args.OldSensor.AllFramesReady -= this.KinectSensorOnAllFramesReady;
+                    }
+                    else if (mode == "Privacy") {
+                        args.OldSensor.AllFramesReady -= this.SensorAllFramesReady;
+                    }
                     args.OldSensor.DepthStream.Disable();
                     args.OldSensor.ColorStream.Disable();
                     args.OldSensor.SkeletonStream.Disable();
@@ -481,7 +508,14 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                     this.backgroundRemovedColorStream.BackgroundRemovedFrameReady += this.BackgroundRemovedFrameReadyHandler;
 
                     // Add an event handler to be called whenever there is new depth frame data
-                    args.NewSensor.AllFramesReady += this.SensorAllFramesReady;
+                    if (mode == "Wall")
+                    {
+                        args.NewSensor.AllFramesReady += this.SensorAllFramesReady;
+                    }
+                    else if (mode == "Privacy")
+                    {
+                        args.NewSensor.AllFramesReady += this.KinectSensorOnAllFramesReady;
+                    }
 
                     try
                     {
@@ -611,6 +645,131 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
             {
             }
              */
+        }
+
+        private void KinectSensorOnAllFramesReady(object sender, AllFramesReadyEventArgs allFramesReadyEventArgs)
+        {
+            var colorImageFrame = allFramesReadyEventArgs.OpenColorImageFrame();
+            var depthImageFrame = allFramesReadyEventArgs.OpenDepthImageFrame();
+            //var skeltImageFrame = allFramesReadyEventArgs.OpenSkeletonFrame();
+            try
+            {
+                {
+                    if (colorImageFrame == null)
+                    {
+                        return;
+                    }
+                    if (depthImageFrame == null)
+                    {
+                        return;
+                    }
+                    // if (skeltImageFrame == null)
+                    //    {
+                    //      return;
+                    //   }
+                    DepthImagePixel[] depthPixels = new DepthImagePixel[depthImageFrame.PixelDataLength];
+                    depthImageFrame.CopyDepthImagePixelDataTo(depthPixels);
+                    int minDepth = depthImageFrame.MinDepth;
+                    int maxDepth = depthImageFrame.MaxDepth;
+                    var ratio = colorImageFrame.PixelDataLength / depthImageFrame.PixelDataLength;
+                    var heightC = colorImageFrame.Height;
+                    var heightD = depthImageFrame.Height;
+                    var LengthC = colorImageFrame.PixelDataLength;
+                    var LengthD = depthPixels.Length;
+                    var ratH = colorImageFrame.Height / depthImageFrame.Height;
+                    var ratW = colorImageFrame.Width / depthImageFrame.Width;
+
+                    // Make a copy of the color frame for displaying.
+                    var haveNewFormat = this.currentColorImageFormat != colorImageFrame.Format;
+                    if (haveNewFormat)
+                    {
+
+                        this.currentColorImageFormat = colorImageFrame.Format;
+                        this.colorImageData = new byte[colorImageFrame.PixelDataLength];
+
+                        this.colorImageWritableBitmap = new WriteableBitmap(
+                            colorImageFrame.Width, colorImageFrame.Height, 96, 96, PixelFormats.Bgr32, null);
+                        ColorImage.Source = this.colorImageWritableBitmap;
+                    }
+
+                    colorImageFrame.CopyPixelDataTo(this.colorImageData);
+                    for (int i = 0; i < colorImageFrame.Width; ++i)
+                    {
+                        for (int j = 0; j < colorImageFrame.Height; ++j)
+                        {
+                            int srcX = i / ratW;
+                            int srcY = j / ratH;
+                            int srcPixel = srcX + 2 + ((srcY - 15) * depthImageFrame.Width);
+                            int tgtPixel = (i + (j * colorImageFrame.Width));
+                            if (srcPixel >= 0 && srcPixel < depthPixels.Length)
+                            {
+                                //      currentDepth = currentDepth + .00001;
+                                short depth = depthPixels[(int)srcPixel].Depth;
+
+                                if (depth < (int)minDepth + currentDepth)
+                                {
+                                    changePixel(tgtPixel, 0);
+                                    //changePixel(tgtPixel, new byte[]{255, 255, 255});
+                                }
+                                //else if (depth > maxDepth)
+                                else if (depth > (int)(minDepth + currentDepth + depthRange))
+                                {
+                                    changePixel(tgtPixel, 0);
+                                }
+                                else
+                                {
+                                    //changePixel(tgtPixel, 0);
+                                }
+                                if (currentDepth + depthRange >= maxDepth + 300)
+                                {
+                                    currentDepth = minDepth;
+                                }
+                            }
+                            else
+                            {
+
+                            }
+                        }
+                    }
+                    this.colorImageWritableBitmap.WritePixels(
+                        new Int32Rect(0, 0, colorImageFrame.Width, colorImageFrame.Height),
+                        this.colorImageData,
+                        colorImageFrame.Width * Bgr32BytesPerPixel,
+                        0);
+                }
+            }
+            finally
+            {
+                if (colorImageFrame != null)
+                {
+                    colorImageFrame.Dispose();
+                }
+                if (depthImageFrame != null)
+                {
+                    depthImageFrame.Dispose();
+                }
+                //    if (skeltImageFrame != null)
+                //    {
+                //        skeltImageFrame.Dispose();
+                //    }
+            }
+        }
+
+        private void changePixel(int pixel, byte value)
+        {
+            changePixel(pixel, new byte[] { value, value, value });
+        }
+
+        private void changePixel(int pixel, byte[] values)
+        {
+            int tgt = pixel * 4;
+            if (tgt >= 0 && tgt < this.colorImageData.Length)
+            {
+                for (int k = 0; k < 3; k++)
+                {
+                    this.colorImageData[tgt++] = values[k];
+                }
+            }
         }
     }
 }
