@@ -1,6 +1,6 @@
 ﻿//------------------------------------------------------------------------------
-// <copyright file="MainWindow.xaml.cs" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
+// <copyright file="MainWindow.xaml.cs">
+//     Copyright (c) Thomas Reese.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------------------
 
@@ -15,7 +15,6 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
     using Microsoft.Kinect;
     using Microsoft.Kinect.Toolkit;
     using Microsoft.Kinect.Toolkit.BackgroundRemoval;
-  //  using System.Drawing.Image;
 
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -74,9 +73,11 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
         private WriteableBitmap colorImageWritableBitmap;
         private byte[] colorImageData;
         private ColorImageFormat currentColorImageFormat = ColorImageFormat.Undefined;
-        private double currentDepth = 0;
+        private double currentDepth = -1;
         private int depthRange = 400;
-        private int sizeIm = 500;
+        private int startingSize = 500;
+        private double sizeIm;
+        private double rate = 1.0;
 
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
@@ -85,11 +86,7 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
         {
             this.InitializeComponent();
             availImages = new System.Windows.Controls.Image[] { Happy, Mad, Football, Karate, Bent};
-            Random r = new Random();
-            chosenImageIndex = r.Next(0, availImages.Length);
-            image = availImages[chosenImageIndex];
-            image.Width = sizeIm;
-            image.Visibility = System.Windows.Visibility.Visible;
+            switchImage();
 
             // initialize the sensor chooser and UI
             this.sensorChooser = new KinectSensorChooser();
@@ -201,12 +198,9 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
         /// </summary>
         /// <param name="sender">object that sends the event</param>
         /// <param name="e">argument of the event</param>
-        
         private double original = 0;
         private int stage = 1;
         private int counter = 0;
-        private JointCollection jc;
-        private WriteableBitmap wb;
         private WriteableBitmap savedForeground;
         private BackgroundRemovedColorFrame savedBackground;
         private void BackgroundRemovedFrameReadyHandler(object sender, BackgroundRemovedColorFrameReadyEventArgs e)
@@ -218,21 +212,15 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                     if (null == this.foregroundBitmap || this.foregroundBitmap.PixelWidth != backgroundRemovedFrame.Width 
                         || this.foregroundBitmap.PixelHeight != backgroundRemovedFrame.Height)
                     {
-                        
                     //    WriteableBitmap bit = WriteableBitmap(Happy.Source);
                         this.foregroundBitmap = new WriteableBitmap(backgroundRemovedFrame.Width, backgroundRemovedFrame.Height, 96.0, 96.0, PixelFormats.Bgra32, null);
-
                         // Set the image we display to point to the bitmap where we'll put the image data
                         this.MaskedColor.Source = this.foregroundBitmap;
-                        
-                        
                     }
-
                     if (original == 0)
                     {
-                        original = Happy.Width;
+                        original = image.Width;
                     }
-                    
                     if (stage == 0)
                     {
                         if (s != null && currentlyTrackedSkeletonId >= 0)
@@ -264,11 +252,10 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                         }
                         if (stage == 4)
                         {
-                            Happy.Width = sizeIm;
+                            image.Width = sizeIm;
                             if (sizeIm < foregroundBitmap.PixelWidth + 100)
                             {
-                                sizeIm += 1;
-
+                                sizeIm += rate;
                                 var total = 0;
                                 if (s != null)
                                 {
@@ -293,18 +280,15 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                                     Matching.Text = "Matching: 0%";
                                 }
                                 Matching.FontSize = 30;
-                                
                             }
                             else
                             {
                                 stage = 5;
-                             //   wb = this.foregroundBitmap;
                                 savedBackground = backgroundRemovedFrame;
                                 savedForeground = foregroundBitmap;
                             //    UpdateImage("Images//Bent.png");
-                            //    Happy.Width = sizeIm;
-                            //    Happy.UpdateLayout();
-                            //    flipped = true;
+                            //    image.Width = sizeIm;
+                            //    image.UpdateLayout();
                                 
                             }
                         }
@@ -312,9 +296,12 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                     }
                     else if (stage == 5)
                     {
-                        Happy.Visibility = System.Windows.Visibility.Hidden;
-                        HappyEnd.Visibility = System.Windows.Visibility.Visible;
-                        HappyEnd.Width = Happy.Width;
+                        counter++;
+                        GoodJob.Visibility = System.Windows.Visibility.Visible;
+                        if (counter == 100) { stage = 6; counter = 0; GoodJob.Visibility = System.Windows.Visibility.Hidden; }
+                      //  Happy.Visibility = System.Windows.Visibility.Hidden;
+                      //  HappyEnd.Visibility = System.Windows.Visibility.Visible;
+                      //  HappyEnd.Width = Happy.Width;
                      //   this.MaskedColor.Source = wb;
                      //   backgroundRemovedFrame = br;
                      /*   foreach (Joint joint in jc)
@@ -330,6 +317,21 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
                                 }
                             }
                         }*/
+                    }
+                    else if (stage == 6)
+                    {
+                        sizeIm -= 4;
+                        if (sizeIm > startingSize)
+                        {
+                            image.Width = sizeIm;
+                        }
+                        else
+                        {
+                            stage = 1;
+                            counter = 0;
+                            rate += 1;
+                            ResetGame();
+                        }
                     }
                     if (savedBackground == null)
                     {
@@ -353,6 +355,13 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
             }
         }
 
+        private void ResetGame()
+        {
+            savedBackground = null;
+            GoodJob.Visibility = System.Windows.Visibility.Hidden;
+            switchImage();
+        }
+
         private void UpdateImage(String uri)
         {
         //    Image myImage3 = new Image();
@@ -360,8 +369,8 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
             bi3.BeginInit();
             bi3.UriSource = new Uri(uri, UriKind.Relative);
             bi3.EndInit();
-            Happy.Stretch = Stretch.Fill; 
-            Happy.Source = bi3;
+            image.Stretch = Stretch.Fill;
+            image.Source = bi3;
         }
 
         private byte[] sil;
@@ -541,12 +550,20 @@ namespace Microsoft.Samples.Kinect.BackgroundRemovalBasics
             }
         }
 
+        private void switchImage()
+        {
+            if (image != null)
+            {
+                image.Visibility = System.Windows.Visibility.Hidden;
+            }
+            Random r = new Random();
+            chosenImageIndex = r.Next(0, availImages.Length);
+            image = availImages[chosenImageIndex];
+            sizeIm = startingSize;
+            image.Width = sizeIm;
+            image.Visibility = System.Windows.Visibility.Visible;
+        }
 
-        /// <summary>
-        /// Handles the user clicking on the screenshot button
-        /// </summary>
-        /// <param name="sender">object sending the event</param>
-        /// <param name="e">event arguments</param>
         private void ButtonScreenshotClick(object sender, RoutedEventArgs e)
         {
  //           Happy.Width = sizeIm;

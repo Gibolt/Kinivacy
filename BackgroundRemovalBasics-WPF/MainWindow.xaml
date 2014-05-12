@@ -91,14 +91,16 @@
         </Grid>
         <Grid Grid.Row="1" Name="Row1">
             <Image Name ="Backdrop" Source="Images\Background.png"/>
-            <Image Name ="Happy" Source="Images\Bent.png" Visibility="Hidden"/>
-            <Image Name ="HappyEnd" Source="Images\BentRed.png" Visibility="Hidden"/>
+            <Image Name ="Happy" Source="Images\Happy.png" Visibility="Hidden"/>
+            <Image Name ="Mad" Source="Images\Mad.png" Visibility="Hidden"/>
+            <Image Name ="Bent" Source="Images\Bent.png" Visibility="Hidden"/>
+            <Image Name ="BentEnd" Source="Images\BentRed.png" Visibility="Hidden"/>
             <Image Name ="Football" Source="Images\Football.png" Visibility="Hidden"/>
             <Image Name ="Karate" Source="Images\Karate.png" Visibility="Hidden"/>
-            <Image Name ="Mad" Source="Images\Mad.png" Visibility="Hidden"/>
             <Image Name ="MaskedColor" Margin="1,6,-1,-6" />
             <Image Name="ColorImage"/>
             <TextBlock Name="Matching" Grid.Column="1" Margin="0 10 0 0" HorizontalAlignment="Center" VerticalAlignment="Top" Foreground="White" FontFamily="Arial" FontWeight="Bold" FontSize="35">Get into Position</TextBlock>
+            <TextBlock Name="GoodJob" Margin="6,10,548,0" HorizontalAlignment="Center" VerticalAlignment="Top" Foreground="Green" FontFamily="Arial" FontWeight="Bold" FontSize="35" Visibility="Hidden">Good Job!</TextBlock>
         </Grid>
         <Button Grid.Row="2" Style="{StaticResource SnapshotButton}" Content="Screenshot" Height="Auto" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10 10 0 10" Name="buttonScreenshot"  Click="ButtonScreenshotClick" />
         <CheckBox Grid.Row="2" Style="{StaticResource SquareCheckBox}" Content="Near Mode" Height="Auto" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0 10 10 10" Name="checkBoxNearMode" Checked="CheckBoxNearModeChanged" Unchecked="CheckBoxNearModeChanged"/>
