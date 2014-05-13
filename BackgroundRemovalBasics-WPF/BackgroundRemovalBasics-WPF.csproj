@@ -127,6 +127,10 @@
       <Link>KinectBackgroundRemoval180_64.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Resource Include="Images\Red.png" />
+    <Resource Include="Images\Black.png" />
+    <Resource Include="Images\ArmsOpen.png" />
+    <Resource Include="Images\Dog.png" />
     <Resource Include="Images\Football.png" />
     <Resource Include="Images\Karate.png" />
     <Resource Include="Images\BentRed.png" />
